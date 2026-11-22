@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Sales{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">Sales</h1>
+<div class="row g-3 mb-4">
+  <div class="col-sm-4"><div class="card card-body"><p class="small text-muted mb-1">Today</p><p class="h5 mb-0">{{ today.orders }} {{ 'order' if today.orders == 1 else 'orders' }} &middot; &#8377;{{ '%.2f' | format(today.total) }}</p><p class="small text-muted mb-0">&#8377;{{ '%.2f' | format(today.received) }} received{% if today.upi %} (UPI &#8377;{{ '%.2f' | format(today.upi) }}){% endif %}</p></div></div>
+  <div class="col-sm-4"><div class="card card-body"><p class="small text-muted mb-1">Last 7 days</p><p class="h5 mb-0">{{ week.orders }} {{ 'order' if week.orders == 1 else 'orders' }} &middot; &#8377;{{ '%.2f' | format(week.total) }}</p><p class="small text-muted mb-0">&#8377;{{ '%.2f' | format(week.received) }} received{% if week.upi %} (UPI &#8377;{{ '%.2f' | format(week.upi) }}){% endif %}</p></div></div>
+  <div class="col-sm-4"><div class="card card-body"><p class="small text-muted mb-1">All time</p><p class="h5 mb-0">{{ ever.orders }} {{ 'order' if ever.orders == 1 else 'orders' }} &middot; &#8377;{{ '%.2f' | format(ever.total) }}</p><p class="small text-muted mb-0">&#8377;{{ '%.2f' | format(ever.received) }} received{% if ever.upi %} (UPI &#8377;{{ '%.2f' | format(ever.upi) }}){% endif %}</p></div></div>
+</div>
+<h2 class="h6">Today, per item</h2>
+{% if items_today %}
+<table class="table table-sm">
+  <thead><tr><th>Item</th><th class="text-end">Sold</th><th class="text-end">Ordered for</th><th class="text-end">Money received</th></tr></thead>
+  <tbody>
+  {% for t in items_today %}<tr><td>{{ t.name }}</td><td class="text-end">{{ t.qty }}</td><td class="text-end">&#8377;{{ '%.2f' | format(t.amount) }}</td><td class="text-end">&#8377;{{ '%.2f' | format(t.received) }}</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="text-muted">Nothing sold today yet.</p>
+{% endif %}
+<h2 class="h6">This week, per item (last 7 days)</h2>
+{% if items_week %}
+<table class="table table-sm">
+  <thead><tr><th>Item</th><th class="text-end">Sold</th><th class="text-end">Ordered for</th><th class="text-end">Money received</th></tr></thead>
+  <tbody>
+  {% for t in items_week %}<tr><td>{{ t.name }}</td><td class="text-end">{{ t.qty }}</td><td class="text-end">&#8377;{{ '%.2f' | format(t.amount) }}</td><td class="text-end">&#8377;{{ '%.2f' | format(t.received) }}</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="text-muted">Nothing sold this week yet.</p>
+{% endif %}
+<h2 class="h6">Each day (last 30 days)</h2>
+{% if days %}
+<table class="table table-sm">
+  <thead><tr><th>Day</th><th class="text-end">Orders</th><th class="text-end">Ordered for</th><th class="text-end">Money received</th></tr></thead>
+  <tbody>
+  {% for d in days %}<tr><td>{{ d.day.strftime('%d %b') }}</td><td class="text-end">{{ d.orders }}</td><td class="text-end">&#8377;{{ '%.2f' | format(d.total) }}</td><td class="text-end">&#8377;{{ '%.2f' | format(d.received) }}</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="text-muted">No orders in the last 30 days.</p>
+{% endif %}
+<h2 class="h6">What sells most (last 30 days)</h2>
+{% if top %}
+<table class="table table-sm">
+  <thead><tr><th>Item</th><th class="text-end">Sold</th><th class="text-end">Ordered for</th></tr></thead>
+  <tbody>
+  {% for t in top %}<tr><td>{{ t.name }}</td><td class="text-end">{{ t.qty }}</td><td class="text-end">&#8377;{{ '%.2f' | format(t.amount) }}</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="text-muted">Nothing sold yet.</p>
+{% endif %}
+<p class="small text-muted">Cancelled and missed orders are left out of the per-item tables. "Ordered for" is every order; "received" is money you have confirmed.</p>
+{% endblock %}

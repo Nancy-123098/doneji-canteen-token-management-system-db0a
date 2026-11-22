@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}My orders{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">My orders</h1>
+<p class="small text-muted mb-3">This page updates by itself every 30 seconds.</p>
+<script>setTimeout(function () { location.reload(); }, 30000);</script>
+{% for o in orders %}
+<article class="card card-body mb-3">
+  <div class="d-flex justify-content-between"><strong>Order {{ o.id }}</strong><span>{{ o.status | replace('_', ' ') }} {% set pm = paid.get(o.id) %}{% if pm and pm.status == 'verified' and o.status == 'cancelled' %}<span class="badge text-bg-warning">Paid, to be returned</span>{% elif pm and pm.status == 'verified' %}<span class="badge text-bg-success">Paid</span>{% elif pm and pm.status == 'claimed' %}<span class="badge text-bg-warning">Payment to check</span>{% else %}<span class="badge text-bg-light">Not paid yet</span>{% endif %}</span></div>
+  <p class="small text-muted mb-1">{{ {'delivery': 'Delivery to ' ~ (o.address or ''), 'pickup': 'Pickup at ' ~ (o.pickup_time or ''), 'table': 'Table ' ~ (o.table_no or '')}[o.mode] }}</p>
+<p class="small mb-1">{% if o.ask_contact_number is not none and o.ask_contact_number != '' %}<span class="me-2">Contact number: {{ o.ask_contact_number }}</span>{% endif %}</p>
+  <ul class="list-unstyled small mb-2">{% for line in lines.get(o.id, []) %}<li>{{ line.name }} &times; {{ line.qty }} &middot; &#8377;{{ '%.2f' | format(line.price * line.qty) }}</li>{% endfor %}</ul>
+  <div class="d-flex justify-content-between"><span>Total &#8377;{{ '%.2f' | format(o.total) }}</span><a href="/shop/orders/{{ o.id }}/pay">Bill and payment</a></div>
+</article>
+{% else %}
+<p class="text-muted">No orders yet. <a href="/shop">See the menu</a>.</p>
+{% endfor %}
+{% endblock %}

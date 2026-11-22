@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Log in{% endblock %}
+{% block content %}
+<div class="ds-auth">
+  <h1 class="h4 mb-3">Log in</h1>
+  {% if error %}<div class="alert alert-warning">{{ error }}</div>{% endif %}
+  <form method="post" class="card card-body">
+    {% if request.args.get('next') %}<input type="hidden" name="next" value="{{ request.args.get('next') }}" />{% endif %}
+    <label class="form-label" for="f_login_email">Email</label>
+    <input class="form-control mb-3" type="email" name="email" id="f_login_email" autocomplete="email" required />
+    <label class="form-label" for="f_login_password">Password</label>
+    <input class="form-control mb-3" type="password" name="password" id="f_login_password" autocomplete="current-password" required />
+    <button class="btn btn-primary">Log in</button>
+  </form>
+  <p class="mt-3 text-muted">New here? <a href="/register{% if request.args.get('next') %}?next={{ request.args.get('next') | urlencode }}{% endif %}">Sign up</a></p>
+</div>
+{% endblock %}

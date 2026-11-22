@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Check out{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">Check out</h1>
+{% if error %}<div class="alert alert-warning">{{ error }}</div>{% endif %}
+<ul class="list-group mb-3">
+  {% for line in cart %}<li class="list-group-item d-flex justify-content-between"><span>{{ line.name }} &times; {{ line.qty }}</span><span>&#8377;{{ '%.2f' | format(line.line_total) }}</span></li>{% endfor %}
+  <li class="list-group-item d-flex justify-content-between fw-semibold"><span>Total</span><span>&#8377;{{ '%.2f' | format(cart_total) }}</span></li>
+</ul>
+<form method="post" action="/shop/checkout" class="card card-body mb-4">
+  <input type="hidden" name="seen_total" value="{{ cart_total }}" />
+  <fieldset class="mb-3"><legend class="form-label">How it goes out</legend>
+    <div class="form-check"><input class="form-check-input" type="radio" name="mode" id="mode_pickup" value="pickup"{{ ' checked' if entered.get('mode') == 'pickup' else '' }} /><label class="form-check-label" for="mode_pickup">Pickup</label></div>
+  </fieldset>
+  <div data-when-field="mode" data-when-in="pickup"><label class="form-label" for="ck_pickup">Pickup time</label><input class="form-control mb-3" type="time" name="pickup_time" id="ck_pickup" value="{{ entered.get('pickup_time', '') }}" /></div>
+  <label class="form-label" for="ck_ask_contact_number">Contact number</label>
+  <input class="form-control mb-3" type="text" maxlength="300" name="ask_contact_number" id="ck_ask_contact_number" value="{{ entered.get('ask_contact_number', '') }}" required />
+  <label class="form-label" for="ck_note">A note (optional)</label>
+  <input class="form-control mb-3" type="text" name="note" id="ck_note" maxlength="300" value="{{ entered.get('note', '') }}" />
+  {% if upi %}
+  <fieldset class="mb-3"><legend class="form-label">How you pay</legend>
+    <div class="form-check"><input class="form-check-input" type="radio" name="pay_method" id="pay_upi" value="upi"{{ ' checked' if entered.get('pay_method') != 'cash' else '' }} /><label class="form-check-label" for="pay_upi">UPI now</label></div>
+    <div class="form-check"><input class="form-check-input" type="radio" name="pay_method" id="pay_cash" value="cash"{{ ' checked' if entered.get('pay_method') == 'cash' else '' }} /><label class="form-check-label" for="pay_cash">Cash</label></div>
+  </fieldset>
+  {% else %}<p class="small text-muted">You pay in cash.</p>{% endif %}
+  <button class="btn btn-primary">Place order</button>
+</form>
+<script>document.querySelector('form[action="/shop/checkout"]').addEventListener('submit', function (ev) { ev.target.querySelector('button').disabled = true; });</script>
+<script>
+(function () {
+  function pick(form, name) {
+    var boxes = form.querySelectorAll('[name="' + name + '"]');
+    for (var i = 0; i < boxes.length; i++) {
+      var b = boxes[i];
+      if (b.type === 'checkbox') return b.checked ? 'true' : 'false';
+      if (b.type === 'radio') { if (b.checked) return b.value; continue; }
+      return b.value;
+    }
+    return '';
+  }
+  function update(form) {
+    var parts = form.querySelectorAll('[data-when-field]');
+    for (var i = 0; i < parts.length; i++) {
+      var want = parts[i].getAttribute('data-when-in').split('|');
+      parts[i].hidden = want.indexOf(pick(form, parts[i].getAttribute('data-when-field'))) === -1;
+    }
+  }
+  document.addEventListener('change', function (ev) { if (ev.target && ev.target.form) update(ev.target.form); });
+  var forms = document.querySelectorAll('form');
+  for (var i = 0; i < forms.length; i++) update(forms[i]);
+})();
+</script>
+{% endblock %}

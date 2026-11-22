@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Notices{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">Notices</h1>
+<ul class="list-group mb-4">
+  {% for n in rows %}
+  <li class="list-group-item{% if not n.seen %} fw-semibold{% endif %}">{{ n.text }}<div class="small text-muted">{{ n.created_at.strftime('%d %b %Y, %H:%M') if n.created_at else '' }}</div></li>
+  {% else %}
+  <li class="list-group-item text-muted">No notices yet.</li>
+  {% endfor %}
+</ul>
+{% endblock %}

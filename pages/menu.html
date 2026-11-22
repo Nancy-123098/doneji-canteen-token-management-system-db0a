@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Menu{% endblock %}
+{% block content %}
+<header class="page-head dj-head">
+  <span class="dj-head-icon"><svg class="dj-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3v8a2 2 0 0 0 2 2v8M5 3v5M9 3v5M17 3c-2 2-2 6 0 8v10"/></svg></span><div>
+    <p class="eyebrow">{% if user and user.role == 'student' %}Student{% elif user and user.role == 'canteen_staff' %}Canteen Staff{% else %}Student{% endif %}</p>
+    <h1 class="h4 mb-0">Menu</h1>
+    <p class="dj-intro">Today's food and prices. Tap an item to order and get a token.</p>
+  </div>
+</header>
+
+{% if user and user.role in ['canteen_staff'] %}
+<details class="dj-add">
+<summary class="btn btn-primary">Add item</summary>
+{% if user and user.role in ['canteen_staff'] %}
+<form method="post" action="/do/add_item" class="card card-body mb-4">
+  <input type="hidden" name="back" value="{{ request.path }}" />
+  <h2 class="h6">Add item</h2>
+  <label class="form-label" for="f_add_item_name">Food item name</label>
+  <input class="form-control mb-3" type="text" name="name" id="f_add_item_name" value="" required />
+  <label class="form-label" for="f_add_item_price">Price</label>
+  <input class="form-control mb-3" type="number" step="0.01" name="price" id="f_add_item_price" value="" min="1" required />
+  <label class="form-label" for="f_add_item_category">Category</label>
+  <select class="form-select mb-3" name="category" id="f_add_item_category" required><option value="snack">Snack</option><option value="meal">Meal</option><option value="beverage">Beverage</option></select>
+  <button class="btn btn-primary">Add item</button>
+</form>
+{% endif %}
+</details>
+{% endif %}
+<form method="get" class="row g-2 align-items-end mb-2" aria-label="Filter this list">
+  <div class="col-auto">
+    <label class="form-label small mb-1" for="filter_menu_q">Search</label>
+    <input class="form-control form-control-sm" type="search" id="filter_menu_q" name="q" value="{{ shown.q or '' }}" placeholder="Type to search" />
+  </div>
+  <div class="col-auto">
+    <label class="form-label small mb-1" for="filter_menu_category">Category</label>
+    <select class="form-select form-select-sm" id="filter_menu_category" name="category"><option value="">All</option><option value="snack"{% if shown.category == 'snack' %} selected{% endif %}>Snack</option><option value="meal"{% if shown.category == 'meal' %} selected{% endif %}>Meal</option><option value="beverage"{% if shown.category == 'beverage' %} selected{% endif %}>Beverage</option></select>
+  </div>
+  <div class="col-auto">
+    <button class="btn btn-primary btn-sm" type="submit">Show</button>
+    <a class="btn btn-outline-secondary btn-sm" href="{{ request.path }}">Show all</a>
+  </div>
+</form>
+
+<div class="dj-cards">
+  {% for r in rows %}
+  <article class="card card-body dj-tile">
+    <div class="dj-tile-top">
+      <span class="dj-tile-icon"><svg class="dj-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3v8a2 2 0 0 0 2 2v8M5 3v5M9 3v5M17 3c-2 2-2 6 0 8v10"/></svg></span>
+      <div class="dj-tile-titles">
+        <h3 class="dj-tile-title">{{ '' if r.name is none else r.name }}</h3>
+        <p class="dj-tile-sub">{{ (r.category or '') | replace('_', ' ') | capitalize }}</p>
+      </div>
+    </div>
+    <dl class="dj-facts">
+      <div><dt>Price</dt><dd>{% if r.price is not none %}&#8377;{{ ('{:,.0f}' if r.price == r.price | int else '{:,.2f}').format(r.price) }}{% endif %}</dd></div>
+      <div><dt>On menu</dt><dd>{{ 'Yes' if r.on_menu else 'No' }}</dd></div>
+    </dl>
+    <div class="dj-actions">
+{% if user and user.role in ['canteen_staff'] and r.on_menu %}
+<form method="post" action="/do/take_off/{{ r.id }}" class="d-inline-block me-1 mb-1">
+  <input type="hidden" name="back" value="{{ request.path }}" />
+  <input type="hidden" name="on_menu" value="false" />
+  <button class="btn btn-sm btn-outline-primary">Take off</button>
+</form>
+{% endif %}
+{% if user and user.role in ['canteen_staff'] and not r.on_menu %}
+<form method="post" action="/do/put_back/{{ r.id }}" class="d-inline-block me-1 mb-1">
+  <input type="hidden" name="back" value="{{ request.path }}" />
+  <input type="hidden" name="on_menu" value="true" />
+  <button class="btn btn-sm btn-outline-primary">Put back</button>
+</form>
+{% endif %}
+{% if user and user.role in ['canteen_staff'] %}<a class="btn btn-sm btn-outline-secondary" href="/menu/{{ r.id }}">Open</a>{% endif %}
+    </div>
+  </article>
+  {% else %}
+  <div class="dj-empty"><svg class="dj-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3v8a2 2 0 0 0 2 2v8M5 3v5M9 3v5M17 3c-2 2-2 6 0 8v10"/></svg><p>{% if shown.values() | reject('none') | list %}Nothing matches that. Try other words, or press Show all.{% else %}No items yet. Add the first item to the menu.{% endif %}</p></div>
+  {% endfor %}
+</div>
+{% if prev_url or next_url %}
+<nav class="d-flex gap-2 my-3" aria-label="More rows">
+  {% if prev_url %}<a class="btn btn-sm btn-outline-secondary" href="{{ prev_url }}">Newer</a>{% endif %}
+  {% if next_url %}<a class="btn btn-sm btn-outline-secondary" href="{{ next_url }}">Older</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

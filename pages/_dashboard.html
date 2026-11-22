@@ -1,0 +1,109 @@
+{# The dashboard panel. Everything it shows comes from dashboard_stats()
+   in app.py. This file is only the shape. #}
+<header class="page-head">
+  {% if dash.eyebrow %}<p class="eyebrow">{{ dash.eyebrow }}</p>{% endif %}
+  <h1 class="h4 mb-0">{{ dash.title or "Dashboard" }}</h1>
+  {% if dash.lead %}<p class="ds-lead">{{ dash.lead }}</p>{% endif %}
+</header>
+
+{% if dash.actions %}
+  {# The owner's guaranteed navigation: these render on an empty database too,
+     so the dashboard is never a dead end. #}
+  <div class="d-flex flex-wrap gap-2 mb-3">
+    {% for a in dash.actions %}
+      <a class="btn btn-sm {{ 'btn-primary' if loop.first else 'btn-outline-primary' }}" href="{{ a.href }}">{{ a.label }}</a>
+    {% endfor %}
+  </div>
+{% endif %}
+
+{% if dash.stats %}
+  <div class="ds-stats">
+    {% for s in dash.stats %}
+      <div class="ds-stat">
+        <div class="ds-stat-label">{{ s.label }}</div>
+        <div class="ds-stat-value">{{ s.value }}</div>
+        {% if s.foot %}<p class="ds-stat-foot">{{ s.foot }}</p>{% endif %}
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+{# The charts sit side by side on a laptop and stack on a phone: the week, and
+   "bars" (one row per thing, such as what sells most). Either may say why it
+   is empty instead ("empty"), so a new app shows a sentence, not a hole. #}
+{% set has_week = dash.week and (dash.week.days or dash.week.empty) %}
+{% set has_bars = dash.bars and (dash.bars.rows or dash.bars.empty) %}
+{% if has_week or has_bars %}
+<div class="ds-charts">
+{% if has_week %}
+  <section class="ds-panel">
+    <h2>{{ dash.week.title or "Last 7 days" }}</h2>
+    {% if dash.week.days %}
+    {# Each bar is a percentage of the busiest day, worked out in app.py. The
+       count sits under the day, not in a hover tooltip: a phone has no hover,
+       and a number nobody can read is not really on the page. #}
+    <div class="ds-week">
+      {% for d in dash.week.days %}
+        <div class="ds-week-col" title="{{ d.label }}: {{ d.n }}">
+          <div class="ds-week-bar{{ ' ds-week-bar-now' if d.now }}" style="height: {{ d.pct }}%"></div>
+        </div>
+      {% endfor %}
+    </div>
+    <div class="ds-week-axis">
+      {% for d in dash.week.days %}
+        <span class="ds-week-day">{{ d.label }}<span class="ds-week-n">{{ d.n }}</span></span>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="ds-empty">{{ dash.week.empty }}</p>
+    {% endif %}
+    {% if dash.week.note %}<p class="ds-week-peak">{{ dash.week.note }}</p>{% endif %}
+  </section>
+{% endif %}
+{% if has_bars %}
+  <section class="ds-panel">
+    <h2>{{ dash.bars.title or "Most" }}</h2>
+    {% if dash.bars.rows %}
+    <ul class="ds-bars">
+      {% for b in dash.bars.rows %}
+        <li>
+          <div class="ds-bars-head"><span class="ds-bars-label">{{ b.label }}</span><span class="ds-bars-n">{{ b.text or b.n }}</span></div>
+          <div class="ds-bars-track"><div class="ds-bars-fill" style="width: {{ b.pct }}%"></div></div>
+        </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="ds-empty">{{ dash.bars.empty }}</p>
+    {% endif %}
+    {% if dash.bars.note %}<p class="ds-week-peak">{{ dash.bars.note }}</p>{% endif %}
+  </section>
+{% endif %}
+</div>
+{% endif %}
+
+{% for panel in dash.panels or [] %}
+  <section class="ds-panel">
+    <h2>{{ panel.title }}</h2>
+    <ul class="ds-queue">
+      {% for row in panel.rows %}
+        <li class="ds-queue-item">
+          {% if row.badge %}<span class="badge ds-badge-soft">{{ row.badge }}</span>{% endif %}
+          <span class="flex-grow-1">{{ row.text }}</span>
+          {% if row.meta %}<span class="text-muted">{{ row.meta }}</span>{% endif %}
+          {# A row's button either opens a page (href) or does the job here (post):
+             "Cash received" records the money and comes back to this page. #}
+          {% if row.post %}
+            <form method="post" action="{{ row.post }}" class="d-inline">
+              <input type="hidden" name="back" value="{{ request.path }}" />
+              <button class="btn btn-sm btn-primary">{{ row.action or "Done" }}</button>
+            </form>
+          {% elif row.href %}
+            <a class="btn btn-sm btn-outline-primary" href="{{ row.href }}">{{ row.action or "Open" }}</a>
+          {% endif %}
+        </li>
+      {% else %}
+        <li class="ds-empty">{{ panel.empty or "Nothing here yet." }}</li>
+      {% endfor %}
+    </ul>
+  </section>
+{% endfor %}

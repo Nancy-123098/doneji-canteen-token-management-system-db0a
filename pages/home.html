@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Menu{% endblock %}
+{% block content %}
+<header class="ds-hero mb-3">
+  <p class="eyebrow">Canteen Token System</p>
+  <h1 class="h4 mb-1">Order your food, grab a token, skip the queue</h1>
+  <p class="sub mb-0">Browse the menu, pay once, and show your token at the counter. Staff see every order the moment it lands.</p>
+</header>
+<style>
+  .dj-cart-pin { position: sticky; top: 1rem; }
+  @media (max-width: 767.98px) {
+    .dj-nav-tabs.dj-signed-in .ds-cart-bar { bottom: calc(3.4rem + env(safe-area-inset-bottom)); }
+    .dj-nav-tabs.dj-signed-in .ds-cart-spacer { height: 10rem; }
+  }
+</style>
+<div class="row g-4">
+  <div class="col-lg-8">
+{% if categories %}<nav class="d-flex flex-wrap gap-2 mb-3" aria-label="Categories"><a class="btn btn-sm {% if not active %}btn-primary{% else %}btn-outline-secondary{% endif %}" href="/shop">All</a>{% for c in categories %}<a class="btn btn-sm {% if active == c %}btn-primary{% else %}btn-outline-secondary{% endif %}" href="/shop?category={{ c | urlencode }}">{{ c | replace('_', ' ') }}</a>{% endfor %}</nav>{% endif %}
+<div class="row g-3">
+  {% for item in items %}
+  <div class="col-12 col-md-6" id="item-{{ item.id }}">
+    <article class="card h-100 overflow-hidden">
+      {% if item.photo_link and (item.photo_link ~ '').startswith('https://') %}
+      <img class="ds-photo" src="{{ item.photo_link }}" alt="{{ item.name }}" loading="lazy" />
+      {% elif stock_photo is defined and stock_photo(item.name ~ '') %}
+      <img class="ds-photo" src="{{ stock_photo(item.name ~ '') }}" alt="{{ item.name }}" loading="lazy" />
+      {% else %}
+      <svg class="ds-photo" viewBox="0 0 640 360" aria-hidden="true"><rect width="640" height="360" fill="var(--ds-accent-soft)" /><text x="320" y="180" text-anchor="middle" dominant-baseline="central" font-size="120" font-weight="700">{{ (item.name ~ '')[:1] | upper }}</text></svg>
+      {% endif %}
+      <div class="card-body d-flex flex-column">
+      <h2 class="h6 mb-1">{{ item.name }}</h2>
+      <div class="d-flex align-items-center justify-content-between gap-2 mt-auto pt-2">
+        <span class="fw-semibold">&#8377;{{ '%.2f' | format(item.price) }}</span>
+        <span class="d-flex align-items-center gap-2">
+        {% set in_cart = cart | selectattr('id', 'equalto', item.id) | list %}{% if in_cart %}<span class="badge ds-badge-soft">&times;{{ in_cart | sum(attribute='qty') }} in cart</span>{% endif %}
+        {% if not user or user.role == 'student' %}
+        <form method="post" action="/shop/cart/{{ item.id }}/add" class="d-inline"><input type="hidden" name="back" value="{{ request.full_path.rstrip('?') }}" /><button class="btn btn-primary btn-sm">Add</button></form>
+        {% endif %}
+        </span>
+      </div>
+      </div>
+    </article>
+  </div>
+  {% else %}
+  <p class="text-muted">Nothing on the menu yet.</p>
+  {% endfor %}
+</div>
+  </div>
+  <div class="col-lg-4 d-none d-lg-block">
+    <div class="dj-cart-pin">
+<aside class="card card-body" aria-label="Your cart">
+  <h2 class="h6">Your cart</h2>
+  {% if cart %}
+  <ul class="list-unstyled mb-2">
+    {% for line in cart %}
+    <li class="d-flex justify-content-between align-items-center gap-2 mb-1">
+      <span>{{ line.name }} &times; {{ line.qty }}</span>
+      <span class="d-flex gap-1 align-items-center">&#8377;{{ '%.2f' | format(line.line_total) }}
+        <form method="post" action="/shop/cart/{{ line.id }}/less" class="d-inline"><input type="hidden" name="back" value="{{ request.full_path.rstrip('?') }}" /><button class="btn btn-sm btn-outline-secondary" aria-label="One less">&minus;</button></form>
+        <form method="post" action="/shop/cart/{{ line.id }}/add" class="d-inline"><input type="hidden" name="back" value="{{ request.full_path.rstrip('?') }}" /><button class="btn btn-sm btn-outline-secondary" aria-label="One more">+</button></form>
+      </span>
+    </li>
+    {% endfor %}
+  </ul>
+  <p class="fw-semibold mb-2">Total &#8377;{{ '%.2f' | format(cart_total) }}</p>
+  <div class="d-flex flex-wrap gap-2"><a class="btn btn-primary" href="/shop/checkout">Check out</a>
+  <form method="post" action="/shop/cart/clear"><input type="hidden" name="back" value="{{ request.full_path.rstrip('?') }}" /><button class="btn btn-outline-secondary">Empty cart</button></form></div>
+  {% else %}
+  <p class="text-muted mb-0">Your cart is empty. Add something from the menu.</p>
+  {% endif %}
+</aside>
+    </div>
+  </div>
+</div>
+{% if cart %}
+<div class="ds-cart-spacer"></div>
+<details class="ds-cart-bar" id="cart-bar">
+  <summary>
+    <span class="ds-cart-bar-handle" aria-hidden="true"></span>
+    <span class="ds-cart-bar-text">
+      {% set cart_count = cart | sum(attribute='qty') %}
+      <span class="ds-cart-bar-total">{{ cart_count }} item{{ '' if cart_count == 1 else 's' }} &middot; &#8377;{{ '%.2f' | format(cart_total) }}</span>
+      <span class="ds-cart-bar-names">{% for line in cart %}{{ line.name }} &times;{{ line.qty }}{% if not loop.last %}, {% endif %}{% endfor %}</span>
+      <span class="ds-cart-bar-title">Your cart</span>
+    </span>
+    <span class="btn btn-primary ds-cart-bar-open">View cart</span>
+    <span class="ds-cart-bar-close" aria-label="Close"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></span>
+  </summary>
+  <div class="ds-cart-sheet">
+    {% for line in cart %}
+    <p class="mb-1 d-flex justify-content-between gap-2"><span>{{ line.name }} &times;{{ line.qty }}</span><span>&#8377;{{ '%.2f' | format(line.line_total) }}</span></p>
+    {% endfor %}
+    <hr class="my-2" />
+    <p class="d-flex justify-content-between fw-bold"><span>Total</span><span>&#8377;{{ '%.2f' | format(cart_total) }}</span></p>
+    <div class="d-grid gap-2"><a class="btn btn-primary" href="/shop/checkout">Check out &middot; &#8377;{{ '%.2f' | format(cart_total) }}</a></div>
+    <form method="post" action="/shop/cart/clear" class="d-grid mt-2"><input type="hidden" name="back" value="{{ request.full_path.rstrip('?') }}" /><button class="btn btn-sm btn-outline-secondary">Empty cart</button></form>
+  </div>
+</details>
+{% endif %}
+{% endblock %}

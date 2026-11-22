@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Pay for your order{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">Order {{ order.id }}</h1>
+<ul class="list-group mb-3">
+  {% for line in lines %}<li class="list-group-item d-flex justify-content-between"><span>{{ line.name }} &times; {{ line.qty }}</span><span>&#8377;{{ '%.2f' | format(line.price * line.qty) }}</span></li>{% endfor %}
+  <li class="list-group-item d-flex justify-content-between fw-semibold"><span>Total</span><span>&#8377;{{ '%.2f' | format(order.total) }}</span></li>
+</ul>
+<p>Status: <strong>{{ order.status | replace('_', ' ') }}</strong>{% if order.status != 'cancelled' %} &middot; Paying by <strong>{{ 'UPI' if order.pay_method == 'upi' else 'cash' }}</strong>{% endif %}</p>
+<p class="small text-muted">{{ {'delivery': 'Delivery to ' ~ (order.address or ''), 'pickup': 'Pickup at ' ~ (order.pickup_time or ''), 'table': 'Table ' ~ (order.table_no or '')}[order.mode] }}</p>
+<p class="small mb-1">{% if order.ask_contact_number is not none and order.ask_contact_number != '' %}<span class="me-2">Contact number: {{ order.ask_contact_number }}</span>{% endif %}</p>
+{% if upi and order.status != 'cancelled' and not (payment and payment.status in ['claimed', 'verified']) %}
+<form method="post" action="/shop/orders/{{ order.id }}/pay" class="d-flex gap-2 mb-3">
+  <input type="hidden" name="pay_method" value="{{ 'cash' if order.pay_method == 'upi' else 'upi' }}" />
+  <button class="btn btn-sm btn-outline-secondary">{{ 'Pay in cash instead' if order.pay_method == 'upi' else 'Pay by UPI instead' }}</button>
+</form>
+{% endif %}
+{% if order.status == 'cancelled' %}<p class="text-muted">This order is cancelled, so there is nothing to pay.</p>{% elif order.pay_method != 'upi' and payment and payment.status == 'verified' %}<p class="text-muted">Paid in cash. Thank you.</p>{% elif order.pay_method == 'upi' %}{% include "_pay.html" %}{% else %}<p class="text-muted">Pay in cash when the order reaches you; the shop records it.</p>{% endif %}
+<p class="mt-3"><a href="/shop/my-orders">All my orders</a></p>
+{% endblock %}

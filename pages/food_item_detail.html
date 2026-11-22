@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Menu item{% endblock %}
+{% block content %}
+<header class="page-head dj-head">
+  <span class="dj-head-icon"><svg class="dj-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3v8a2 2 0 0 0 2 2v8M5 3v5M9 3v5M17 3c-2 2-2 6 0 8v10"/></svg></span><div>
+    <p class="eyebrow">Canteen Staff</p>
+    <h1 class="h4 mb-0">Menu item</h1>
+    <p class="dj-intro">Item details, price and who added it to the menu.</p>
+  </div>
+</header>
+{% if row %}
+<div class="card card-body mb-3">
+  <dl class="row mb-0">
+    <dt class="col-sm-4">Food item name</dt><dd class="col-sm-8">{{ '' if row.name is none else row.name }}</dd>
+    <dt class="col-sm-4">Price</dt><dd class="col-sm-8">{% if row.price is not none %}&#8377;{{ ('{:,.0f}' if row.price == row.price | int else '{:,.2f}').format(row.price) }}{% endif %}</dd>
+    <dt class="col-sm-4">Category</dt><dd class="col-sm-8">{{ (row.category or '') | replace('_', ' ') | capitalize }}</dd>
+
+  </dl>
+</div>
+<div class="mb-4">
+
+
+
+
+</div>
+{% else %}
+<p class="text-muted">Nothing here yet.</p>
+{% endif %}
+{% endblock %}

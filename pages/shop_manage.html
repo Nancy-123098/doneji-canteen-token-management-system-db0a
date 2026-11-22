@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Orders{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">Orders</h1>
+<p class="small text-muted mb-3">This page updates by itself every 30 seconds.</p>
+<script>setTimeout(function () { location.reload(); }, 30000);</script>
+{% for o in orders %}
+<article class="card card-body mb-3">
+  <div class="d-flex justify-content-between flex-wrap gap-2"><strong>Order {{ o.id }} &middot; {{ o.buyer_name }}{% if o.created_at %} &middot; <span class="fw-normal text-muted">{{ o.created_at.strftime('%d %b, %H:%M') }}</span>{% endif %}</strong><span>{{ o.status | replace('_', ' ') }} {% set pm = paid.get(o.id) %}{% if pm and pm.status == 'verified' and o.status == 'cancelled' %}<span class="badge text-bg-warning">Paid, to be returned</span>{% elif pm and pm.status == 'verified' %}<span class="badge text-bg-success">Paid</span>{% elif pm and pm.status == 'claimed' %}<span class="badge text-bg-warning">Payment to check</span>{% else %}<span class="badge text-bg-light">Not paid yet</span>{% endif %}</span></div>
+<p class="small mb-1">{{ {'delivery': 'Delivery to ' ~ (o.address or ''), 'pickup': 'Pickup at ' ~ (o.pickup_time or ''), 'table': 'Table ' ~ (o.table_no or '')}[o.mode] }}{% if o.phone %} &middot; Phone {{ o.phone }}{% endif %}{% if o.note %} &middot; {{ o.note }}{% endif %}</p>
+<p class="small mb-1">{% if o.ask_contact_number is not none and o.ask_contact_number != '' %}<span class="me-2">Contact number: {{ o.ask_contact_number }}</span>{% endif %}</p>
+  <ul class="list-unstyled small mb-2">{% for line in lines.get(o.id, []) %}<li>{{ line.name }} &times; {{ line.qty }} &middot; &#8377;{{ '%.2f' | format(line.price * line.qty) }}</li>{% endfor %}</ul>
+  <p class="mb-2">Total &#8377;{{ '%.2f' | format(o.total) }} &middot; {{ 'UPI' if o.pay_method == 'upi' else 'Cash' }}</p>
+  <div class="d-flex flex-wrap gap-2">
+    {% if moves and o.status in steps %}<form method="post" action="/shop/manage/{{ o.id }}/next"><input type="hidden" name="from" value="{{ o.status }}" /><button class="btn btn-sm btn-primary">Mark {{ steps[o.status] | replace('_', ' ') }}</button></form>{% endif %}
+    {% if moves and o.status in open and not (paid.get(o.id) and paid.get(o.id).status == 'verified') %}<form method="post" action="/shop/manage/{{ o.id }}/cancel"><button class="btn btn-sm btn-outline-danger">Cancel</button></form>{% endif %}
+    {% set pm = paid.get(o.id) %}
+    {% if money and o.status not in ['cancelled', 'missed'] and not (pm and pm.status in ['verified', 'claimed']) %}<form method="post" action="/shop/manage/{{ o.id }}/cash"><button class="btn btn-sm btn-outline-secondary">Cash received</button></form><form method="post" action="/shop/manage/{{ o.id }}/cash"><input type="hidden" name="pay_method" value="upi" /><button class="btn btn-sm btn-outline-secondary">UPI received at the counter</button></form>{% endif %}
+    {% if money and pm and pm.status == 'claimed' %}
+    <span class="small">UPI ref {{ pm.claimed_ref }}</span>
+    <form method="post" action="/manage/payments/{{ pm.id }}/verify"><input type="hidden" name="ref" value="{{ pm.claimed_ref }}" /><button class="btn btn-sm btn-outline-primary">Verified in my bank app</button></form>
+    <form method="post" action="/manage/payments/{{ pm.id }}/reject" class="d-flex gap-1"><input class="form-control form-control-sm" type="text" name="reason" maxlength="200" placeholder="Why (optional)" aria-label="Why the money was not received" /><button class="btn btn-sm btn-outline-danger">Not received</button></form>
+    {% endif %}
+  </div>
+</article>
+{% else %}
+<p class="text-muted">No orders yet.</p>
+{% endfor %}
+{% endblock %}
